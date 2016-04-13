@@ -77,10 +77,10 @@ namespace json
                                 value(bool b)                               : k(b ? kind::true_ : kind::false_) {} // Construct true or false from boolean
                                 value(std::nullptr_t)                       : k(kind::null) {}                     // Construct null from nullptr
 
-        const value &           operator[](size_t index) const              { const static value null; return index < arr.size() ? arr[index] : null; }
-        const value &           operator[](int index) const                 { const static value null; return index < 0 ? null : (*this)[static_cast<size_t>(index)]; }
-        const value &           operator[](const char * key) const          { for (auto & kvp : obj) if (kvp.first == key) return kvp.second; const static value null; return null; }
-        const value &           operator[](const std::string & key) const   { return (*this)[key.c_str()]; }
+        const value &           operator [] (size_t index) const            { const static value null; return index < arr.size() ? arr[index] : null; }
+        const value &           operator [] (int index) const               { const static value null; return index < 0 ? null : operator[](static_cast<size_t>(index)); }
+        const value &           operator [] (const char * key) const        { for (auto & kvp : obj) if (kvp.first == key) return kvp.second; const static value null; return null; }
+        const value &           operator [] (const std::string & key) const { return operator[](key.c_str()); }
 
         bool                    is_string() const                           { return k == kind::string; }
         bool                    is_number() const                           { return k == kind::number; }
@@ -92,7 +92,7 @@ namespace json
 
         bool                    bool_or_default(bool def) const             { return is_true() ? true : is_false() ? false : def; }
         std::string             string_or_default(const char * def) const   { return k == kind::string ? str : def; }
-        template<class T> T     number_or_default(T def) const              { if (!is_number()) return def; T val = def; std::istringstream(str) >> val; return val; }
+        template<class T> T     number_or_default(T def) const              { if (!is_number()) return def; auto val = +T(); std::istringstream(str) >> val; return static_cast<T>(val); }
 
         std::string             string() const                              { return string_or_default(""); } // Value, if a String, empty otherwise
         template<class T> T     number() const                              { return number_or_default(T()); } // Value, if a Number, empty otherwise
@@ -120,6 +120,7 @@ namespace json
 }
 #endif
 
+// Define JSON_H_IMPLEMENTATION before including json.h in exactly one *.cpp file
 #ifdef JSON_H_IMPLEMENTATION
 #include <algorithm>
 #include <regex>
