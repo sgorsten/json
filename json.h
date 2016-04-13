@@ -107,8 +107,8 @@ namespace json
         static value            from_number(std::string num)                { assert(is_json_number(num)); return value(kind::number, move(num)); }
     };
 
-    bool operator == (const value & a, const value & b) { return a.get_kind() == b.get_kind() && a.get_contents() == b.get_contents() && a.get_object() == b.get_object() && a.get_array() == b.get_array(); }
-    bool operator != (const value & a, const value & b) { return !(a == b); }
+    inline bool operator == (const value & a, const value & b) { return a.get_kind() == b.get_kind() && a.get_contents() == b.get_contents() && a.get_object() == b.get_object() && a.get_array() == b.get_array(); }
+    inline bool operator != (const value & a, const value & b) { return !(a == b); }
 
     std::ostream & operator << (std::ostream & out, const value & val);
     std::ostream & operator << (std::ostream & out, const array & arr);
