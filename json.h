@@ -119,25 +119,26 @@ namespace json
     std::ostream & operator << (std::ostream & out, tabbed_ref<value> val);
     std::ostream & operator << (std::ostream & out, tabbed_ref<array> arr);
     std::ostream & operator << (std::ostream & out, tabbed_ref<object> obj);
-
-    struct field_encoder { object & o; template<class T> void operator () (const char * name, const T & field) { o.emplace(name, encode(field)); } };
-    template<class T> typename std::enable_if<std::is_class<T>::value, value>::type encode(const T & o) { object r; visit_fields(const_cast<T &>(o), field_encoder{r}); return r; }
-    template<class T> typename std::enable_if<std::is_arithmetic<T>::value, value>::type encode(T n) { return n; }
-    template<class T, int N> value encode(const T (& a)[N]) { array r(N); for(int i=0; i<N; ++i) r[i] = encode(a[i]); return r; }
-    template<class T, int N> value encode(const std::array<T,N> & a) { array r(N); for(int i=0; i<N; ++i) r[i] = encode(a[i]); return r; }
-    template<class T> value encode(const std::vector<T> & v) { array r(v.size()); for(size_t i=0; i<v.size(); ++i) r[i] = encode(v[i]); return r; }
-    inline value encode(const std::string & s) { return s; }
-    inline value encode(bool b) { return b; }  
-    
-    struct field_decoder { const value & v; template<class T> void operator () (const char * name, T & field) { decode(field, v[name]); } };
-    template<class T> typename std::enable_if<std::is_class<T>::value>::type decode(T & o, const value & val) { visit_fields(o, field_decoder{val}); }
-    template<class T> typename std::enable_if<std::is_arithmetic<T>::value>::type decode(T & n, const value & val) { n = val.number<T>(); }
-    template<class T, int N> void decode(T (& a)[N], const value & val) { for(int i=0; i<N; ++i) decode(a[i], val[i]); }
-    template<class T, int N> void decode(std::array<T,N> & a, const value & val) { for(int i=0; i<N; ++i) decode(a[i], val[i]); }
-    template<class T> void decode(std::vector<T> & v, const value & val) { v.resize(val.get_array().size()); for(size_t i=0; i<v.size(); ++i) decode(v[i], val[i]); }
-    inline void decode(std::string & s, const value & val) { s = val.string(); }
-    inline void decode(bool & b, const value & val) { b = val.is_true(); }
 }
+
+inline json::value to_json(bool b) { return b; }  
+inline json::value to_json(const std::string & s) { return s; }
+template<class T> typename std::enable_if<std::is_arithmetic<T>::value, json::value>::type to_json(T n) { return n; }
+template<class T, int N> json::value to_json(const T (& a)[N]) { json::array r(N); for(int i=0; i<N; ++i) r[i] = to_json(a[i]); return r; }
+template<class T, size_t N> json::value to_json(const std::array<T,N> & a) { json::array r(N); for(size_t i=0; i<N; ++i) r[i] = to_json(a[i]); return r; }
+template<class T> json::value to_json(const std::vector<T> & v) { json::array r(v.size()); for(size_t i=0; i<v.size(); ++i) r[i] = to_json(v[i]); return r; }
+struct field_encoder { json::object & o; template<class T> void operator () (const char * name, const T & field) { o.emplace(name, to_json(field)); } };
+template<class T> typename std::enable_if<std::is_class<T>::value, json::value>::type to_json(const T & o) { json::object r; visit_fields(const_cast<T &>(o), field_encoder{r}); return r; }
+    
+inline void from_json(bool & b, const json::value & val) { b = val.is_true(); }
+inline void from_json(std::string & s, const json::value & val) { s = val.string(); }
+template<class T> typename std::enable_if<std::is_arithmetic<T>::value>::type from_json(T & n, const json::value & val) { n = val.number<T>(); }
+template<class T, int N> void from_json(T (& a)[N], const json::value & val) { for(int i=0; i<N; ++i) from_json(a[i], val[i]); }
+template<class T, size_t N> void from_json(std::array<T,N> & a, const json::value & val) { for(size_t i=0; i<N; ++i) from_json(a[i], val[i]); }
+template<class T> void from_json(std::vector<T> & v, const json::value & val) { v.resize(val.get_array().size()); for(size_t i=0; i<v.size(); ++i) from_json(v[i], val[i]); }
+struct field_decoder { const json::value & v; template<class T> void operator () (const char * name, T & field) { from_json(field, v[name]); } };
+template<class T> typename std::enable_if<std::is_class<T>::value>::type from_json(T & o, const json::value & val) { visit_fields(o, field_decoder{val}); }   
+
 #endif
 
 // Define JSON_H_IMPLEMENTATION before including json.h in exactly one *.cpp file

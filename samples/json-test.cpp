@@ -146,14 +146,14 @@ TEST_CASE( "test json::encode and json::decode" )
 })";
 
     // If we encode the data structure and print it, we should get the desired output
-    REQUIRE( pretty_print(json::encode(quad_mesh)) == desired_output );
+    REQUIRE( pretty_print(to_json(quad_mesh)) == desired_output );
 
     // If we encode the data structure and parse the desired output, we should get equivalent JSON values
-    REQUIRE( json::encode(quad_mesh) == json::parse(desired_output) );
+    REQUIRE( to_json(quad_mesh) == json::parse(desired_output) );
 
     // If we parse the desired output and decode it to a mesh, it should match the original
     mesh decoded_mesh;
-    json::decode(decoded_mesh, json::parse(desired_output));
+    from_json(decoded_mesh, json::parse(desired_output));
     REQUIRE( quad_mesh.vertices.size() == decoded_mesh.vertices.size() );
     REQUIRE( memcmp(quad_mesh.vertices.data(), decoded_mesh.vertices.data(), sizeof(vertex)*quad_mesh.vertices.size()) == 0 );
     REQUIRE( quad_mesh.triangles.size() == decoded_mesh.triangles.size() );
