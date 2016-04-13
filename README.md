@@ -13,6 +13,6 @@ GCC 4.8 | [Travis CI](http://travis-ci.org): [![Build status](http://travis-ci.o
 # TODO
 
 * Better support for mutable values
-* Decide whether to keep or deprecate gcc 4.8 and earlier workaround for missing <regex>
+* Decide whether to keep or deprecate gcc 4.8 and earlier workaround for missing regex implementation
 * Validate + prettyprint sample
 * Unit tests
