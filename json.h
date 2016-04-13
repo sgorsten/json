@@ -41,10 +41,11 @@
 
 #ifndef JSON_H
 #define JSON_H
-#include <cstdint>
-#include <cassert>
-#include <sstream>
-#include <vector>
+#include <cstdint>   // For int32_t, etc.
+#include <cassert>   // For assert(...)
+#include <sstream>   // For std::ostringstream
+#include <vector>    // For std::vector
+#include <stdexcept> // For std::runtime_error
 namespace json 
 {
     class JsonValue;

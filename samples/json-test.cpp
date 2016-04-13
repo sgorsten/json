@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-int main()
+int main() try
 {
     std::cout << json::tabbed(json::JsonObject{
         {"name", "sterling"},
@@ -11,5 +11,10 @@ int main()
         {"likes xml", false},
         {"public domain projects", json::JsonArray{"json.h", "linalg.h"}},
     }, 4) << std::endl;
-	return 0;
+	return EXIT_SUCCESS;
+}
+catch(const std::exception & e)
+{
+    std::cerr << e.what() << std::endl;
+    return EXIT_FAILURE;
 }
