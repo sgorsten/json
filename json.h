@@ -43,10 +43,10 @@
 #define JSON_H
 #include <cstdint>   // For int32_t, etc.
 #include <cassert>   // For assert(...)
-#include <sstream>   // For std::ostringstream
 #include <vector>    // For std::vector
 #include <map>       // For std::map
 #include <stdexcept> // For std::runtime_error
+#include <sstream>   // For std::ostringstream
 namespace json 
 {
     enum class kind { string, number, object, array, true_, false_, null }; // Describes one of seven distinct categories of JSON values
@@ -60,58 +60,53 @@ namespace json
 
     class value
     {
-        template<class T> static std::string to_str(const T & val) { std::ostringstream ss; ss << val; return ss.str(); }
+        kind                    k;
+        std::string             str;  // Contents of String or Number value
+        object                  obj;  // Fields of Object value
+        array                   arr;  // Elements of Array value
 
-        kind                k;
-        std::string         str;  // Contents of String or Number value
-        object              obj;  // Fields of Object value
-        array               arr;  // Elements of Array value
-
-                            value(kind k, std::string str)           : k(k), str(move(str)) {}
+                                value(kind k, std::string str)              : k(k), str(move(str)) {}
     public:
-                            value()                                     : k(kind::null) {}                     // Default construct null
-                            value(std::nullptr_t)                       : k(kind::null) {}                     // Construct null from nullptr
-                            value(bool b)                               : k(b ? kind::true_ : kind::false_) {} // Construct true or false from boolean
-                            value(const char * s)                       : value(kind::string, s) {}            // Construct string from C-string
-                            value(std::string s)                        : value(kind::string, move(s)) {}      // Construct string from std::string
-                            value(int32_t n)                            : value(kind::number, to_str(n)) {}    // Construct number from integer
-                            value(uint32_t n)                           : value(kind::number, to_str(n)) {}    // Construct number from integer
-                            value(int64_t n)                            : value(kind::number, to_str(n)) {}    // Construct number from integer
-                            value(uint64_t n)                           : value(kind::number, to_str(n)) {}    // Construct number from integer
-                            value(float n)                              : value(kind::number, to_str(n)) {}    // Construct number from float
-                            value(double n)                             : value(kind::number, to_str(n)) {}    // Construct number from double
-                            value(object o)                             : k(kind::object), obj(move(o)) {}     // Construct object from vector<pair<string,value>> (TODO: Assert no duplicate keys)
-                            value(array a)                              : k(kind::array), arr(move(a)) {}      // Construct array from vector<value>
+                                value()                                     : k(kind::null) {}                     // Default construct null
+                                value(const char * s)                       : value(kind::string, s) {}            // Construct string from C-string
+                                value(std::string s)                        : value(kind::string, move(s)) {}      // Construct string from std::string
+        template<class N, class = std::enable_if_t<std::is_arithmetic<N>::value, void>>
+                                value(N n)                                  : k(kind::number) { std::ostringstream ss; ss << +n; str = ss.str(); }
+                                value(object o)                             : k(kind::object), obj(move(o)) {}     // Construct object from vector<pair<string,value>> (TODO: Assert no duplicate keys)
+                                value(array a)                              : k(kind::array), arr(move(a)) {}      // Construct array from vector<value>
+                                value(bool b)                               : k(b ? kind::true_ : kind::false_) {} // Construct true or false from boolean
+                                value(std::nullptr_t)                       : k(kind::null) {}                     // Construct null from nullptr
 
-        bool                operator == (const value & r) const         { return k == r.k && str == r.str && obj == r.obj && arr == r.arr; }
-        bool                operator != (const value & r) const         { return !(*this == r); }
+        const value &           operator[](size_t index) const              { const static value null; return index < arr.size() ? arr[index] : null; }
+        const value &           operator[](int index) const                 { const static value null; return index < 0 ? null : (*this)[static_cast<size_t>(index)]; }
+        const value &           operator[](const char * key) const          { for (auto & kvp : obj) if (kvp.first == key) return kvp.second; const static value null; return null; }
+        const value &           operator[](const std::string & key) const   { return (*this)[key.c_str()]; }
 
-        const value &       operator[](size_t index) const              { const static value null; return index < arr.size() ? arr[index] : null; }
-        const value &       operator[](int index) const                 { const static value null; return index < 0 ? null : (*this)[static_cast<size_t>(index)]; }
-        const value &       operator[](const char * key) const          { for (auto & kvp : obj) if (kvp.first == key) return kvp.second; const static value null; return null; }
-        const value &       operator[](const std::string & key) const   { return (*this)[key.c_str()]; }
+        bool                    is_string() const                           { return k == kind::string; }
+        bool                    is_number() const                           { return k == kind::number; }
+        bool                    is_object() const                           { return k == kind::object; }
+        bool                    is_array() const                            { return k == kind::array; }
+        bool                    is_true() const                             { return k == kind::true_; }
+        bool                    is_false() const                            { return k == kind::false_; }
+        bool                    is_null() const                             { return k == kind::null; }
 
-        bool                is_string() const                           { return k == kind::string; }
-        bool                is_number() const                           { return k == kind::number; }
-        bool                is_object() const                           { return k == kind::object; }
-        bool                is_array() const                            { return k == kind::array; }
-        bool                is_true() const                             { return k == kind::true_; }
-        bool                is_false() const                            { return k == kind::false_; }
-        bool                is_null() const                             { return k == kind::null; }
+        bool                    bool_or_default(bool def) const             { return is_true() ? true : is_false() ? false : def; }
+        std::string             string_or_default(const char * def) const   { return k == kind::string ? str : def; }
+        template<class T> T     number_or_default(T def) const              { if (!is_number()) return def; T val = def; std::istringstream(str) >> val; return val; }
 
-        bool                bool_or_default(bool def) const             { return is_true() ? true : is_false() ? false : def; }
-        std::string         string_or_default(const char * def) const   { return k == kind::string ? str : def; }
-        template<class T> T number_or_default(T def) const              { if (!is_number()) return def; T val = def; std::istringstream(str) >> val; return val; }
+        std::string             string() const                              { return string_or_default(""); } // Value, if a String, empty otherwise
+        template<class T> T     number() const                              { return number_or_default(T()); } // Value, if a Number, empty otherwise
 
-        std::string         string() const                              { return string_or_default(""); } // Value, if a String, empty otherwise
-        template<class T> T number() const                              { return number_or_default(T()); } // Value, if a Number, empty otherwise
-        const object &      object() const                              { return obj; }    // Name/value pairs, if an Object, empty otherwise
-        const array &       array() const                               { return arr; }    // Values, if an Array, empty otherwise
+        json::kind              kind() const                                { return k; }
+        const std::string &     contents() const                            { return str; }    // Contents, if a String, JSON format number, if a Number, empty otherwise
+        const json::object &    object() const                              { return obj; }    // Name/value pairs, if an Object, empty otherwise
+        const json::array &     array() const                               { return arr; }    // Values, if an Array, empty otherwise
 
-        const std::string & contents() const                            { return str; }    // Contents, if a String, JSON format number, if a Number, empty otherwise
-
-        static value        from_number(std::string num)                { assert(is_json_number(num)); return value(kind::number, move(num)); }
+        static value            from_number(std::string num)                { assert(is_json_number(num)); return value(kind::number, move(num)); }
     };
+
+    bool operator == (const value & a, const value & b) { return a.kind() == b.kind() && a.contents() == b.contents() && a.object() == b.object() && a.array() == b.array(); }
+    bool operator != (const value & a, const value & b) { return !(a == b); }
 
     std::ostream & operator << (std::ostream & out, const value & val);
     std::ostream & operator << (std::ostream & out, const array & arr);

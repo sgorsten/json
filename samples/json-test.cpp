@@ -10,7 +10,9 @@ int main() try
         {"age", 29},
         {"likes xml", false},
         {"public domain projects", json::array{"json.h", "linalg.h"}},
+        {"ascii code", 'S'}
     }, 4) << std::endl;
+
 	return EXIT_SUCCESS;
 }
 catch(const std::exception & e)
