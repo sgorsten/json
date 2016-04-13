@@ -71,7 +71,7 @@ namespace json
                                 value()                                     : k(kind::null) {}                     // Default construct null
                                 value(const char * s)                       : value(kind::string, s) {}            // Construct string from C-string
                                 value(std::string s)                        : value(kind::string, move(s)) {}      // Construct string from std::string
-        template<class N, class = std::enable_if<std::is_arithmetic<N>::value, void>::type>
+        template<class N, class = typename std::enable_if<std::is_arithmetic<N>::value, void>::type>
                                 value(N n)                                  : k(kind::number) { std::ostringstream ss; ss << +n; str = ss.str(); }
                                 value(object o)                             : k(kind::object), obj(move(o)) {}     // Construct object from vector<pair<string,value>> (TODO: Assert no duplicate keys)
                                 value(array a)                              : k(kind::array), arr(move(a)) {}      // Construct array from vector<value>
