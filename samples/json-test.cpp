@@ -77,12 +77,8 @@ TEST_CASE( "constructors" )
     REQUIRE( object_value.get_kind() == json::kind::object );
 }
 
-std::string packed_print(const json::value & v)
-{
-    std::ostringstream ss;
-    ss << v;
-    return ss.str();
-}
+std::string packed_print(const json::value & v) { std::ostringstream ss; ss << v; return ss.str(); }
+std::string pretty_print(const json::value & v) { std::ostringstream ss; ss << tabbed(v, 4); return ss.str(); }
 
 TEST_CASE( "printing" )
 {
@@ -99,6 +95,69 @@ TEST_CASE( "printing" )
     auto object = json::object{{"a",1},{"c",3},{"b",2},{"a",4}};
     REQUIRE( object.size() == 3 );                                  // json::object should ignore duplicate keys
     REQUIRE( packed_print(object) == "{\"a\":1,\"b\":2,\"c\":3}" ); // json::object should print alphabetically by key order
+}
+
+struct vertex { float position[3], normal[3], texcoord[2]; };
+struct mesh { std::vector<vertex> vertices; std::vector<std::array<int,3>> triangles; };
+
+template<class F> void visit_fields(vertex & o, F f) { f("v", o.position); f("n", o.normal); f("tc", o.texcoord); }
+template<class F> void visit_fields(mesh & o, F f) { f("vertices", o.vertices); f("triangles", o.triangles); }
+
+TEST_CASE( "test json::encode and json::decode" )
+{
+    const mesh quad_mesh = {
+        {
+            {{-0.5f,-0.5f,0}, {0,0,1}, {0,0}},
+            {{+0.5f,-0.5f,0}, {0,0,1}, {1,0}},
+            {{+0.5f,+0.5f,0}, {0,0,1}, {1,1}},
+            {{-0.5f,+0.5f,0}, {0,0,1}, {0,1}}
+        },
+        {
+            {{0,1,2}}, {{0,2,3}}
+        }
+    };
+    const char * desired_output = R"({
+    "triangles": [
+        [0,1,2],
+        [0,2,3]
+    ],
+    "vertices": [
+        {
+            "n": [0,0,1],
+            "tc": [0,0],
+            "v": [-0.5,-0.5,0]
+        },
+        {
+            "n": [0,0,1],
+            "tc": [1,0],
+            "v": [0.5,-0.5,0]
+        },
+        {
+            "n": [0,0,1],
+            "tc": [1,1],
+            "v": [0.5,0.5,0]
+        },
+        {
+            "n": [0,0,1],
+            "tc": [0,1],
+            "v": [-0.5,0.5,0]
+        }
+    ]
+})";
+
+    // If we encode the data structure and print it, we should get the desired output
+    REQUIRE( pretty_print(json::encode(quad_mesh)) == desired_output );
+
+    // If we encode the data structure and parse the desired output, we should get equivalent JSON values
+    REQUIRE( json::encode(quad_mesh) == json::parse(desired_output) );
+
+    // If we parse the desired output and decode it to a mesh, it should match the original
+    mesh decoded_mesh;
+    json::decode(decoded_mesh, json::parse(desired_output));
+    REQUIRE( quad_mesh.vertices.size() == decoded_mesh.vertices.size() );
+    REQUIRE( memcmp(quad_mesh.vertices.data(), decoded_mesh.vertices.data(), sizeof(vertex)*quad_mesh.vertices.size()) == 0 );
+    REQUIRE( quad_mesh.triangles.size() == decoded_mesh.triangles.size() );
+    REQUIRE( memcmp(quad_mesh.triangles.data(), decoded_mesh.triangles.data(), sizeof(int)*3*quad_mesh.triangles.size()) == 0 );
 }
 
 // TODO: Test printing of escape sequences

@@ -43,6 +43,7 @@
 #define JSON_H
 #include <cstdint>   // For int32_t, etc.
 #include <cassert>   // For assert(...)
+#include <array>     // For std::array
 #include <vector>    // For std::vector
 #include <map>       // For std::map
 #include <stdexcept> // For std::runtime_error
@@ -118,8 +119,25 @@ namespace json
     std::ostream & operator << (std::ostream & out, tabbed_ref<value> val);
     std::ostream & operator << (std::ostream & out, tabbed_ref<array> arr);
     std::ostream & operator << (std::ostream & out, tabbed_ref<object> obj);
-}
 
+    struct field_encoder { object & o; template<class T> void operator () (const char * name, const T & field) { o.emplace(name, encode(field)); } };
+    template<class T> typename std::enable_if<std::is_class<T>::value, value>::type encode(const T & o) { object r; visit_fields(const_cast<T &>(o), field_encoder{r}); return r; }
+    template<class T> typename std::enable_if<std::is_arithmetic<T>::value, value>::type encode(T n) { return n; }
+    template<class T, int N> value encode(const T (& a)[N]) { array r(N); for(int i=0; i<N; ++i) r[i] = encode(a[i]); return r; }
+    template<class T, int N> value encode(const std::array<T,N> & a) { array r(N); for(int i=0; i<N; ++i) r[i] = encode(a[i]); return r; }
+    template<class T> value encode(const std::vector<T> & v) { array r(v.size()); for(size_t i=0; i<v.size(); ++i) r[i] = encode(v[i]); return r; }
+    inline value encode(const std::string & s) { return s; }
+    inline value encode(bool b) { return b; }  
+    
+    struct field_decoder { const value & v; template<class T> void operator () (const char * name, T & field) { decode(field, v[name]); } };
+    template<class T> typename std::enable_if<std::is_class<T>::value>::type decode(T & o, const value & val) { visit_fields(o, field_decoder{val}); }
+    template<class T> typename std::enable_if<std::is_arithmetic<T>::value>::type decode(T & n, const value & val) { n = val.number<T>(); }
+    template<class T, int N> void decode(T (& a)[N], const value & val) { for(int i=0; i<N; ++i) decode(a[i], val[i]); }
+    template<class T, int N> void decode(std::array<T,N> & a, const value & val) { for(int i=0; i<N; ++i) decode(a[i], val[i]); }
+    template<class T> void decode(std::vector<T> & v, const value & val) { v.resize(val.get_array().size()); for(size_t i=0; i<v.size(); ++i) decode(v[i], val[i]); }
+    inline void decode(std::string & s, const value & val) { s = val.string(); }
+    inline void decode(bool & b, const value & val) { b = val.is_true(); }
+}
 #endif
 
 // Define JSON_H_IMPLEMENTATION before including json.h in exactly one *.cpp file
