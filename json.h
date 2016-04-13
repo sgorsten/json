@@ -48,79 +48,79 @@
 #include <stdexcept> // For std::runtime_error
 namespace json 
 {
-    class JsonValue;
-    typedef std::vector<JsonValue> JsonArray;
-    typedef std::vector<std::pair<std::string, JsonValue>> JsonObject;
-    struct JsonParseError : std::runtime_error { JsonParseError(const std::string & what) : runtime_error("json parse error - " + what) {} };
+    class value;
+    typedef std::vector<value> array;
+    typedef std::vector<std::pair<std::string, value>> object;
+    struct parse_error : std::runtime_error { parse_error(const std::string & what) : runtime_error("json parse error - " + what) {} };
 
-    JsonValue jsonFrom(const std::string & text); // throws JsonParseError
-    bool isJsonNumber(const std::string & num);
+    value parse(const std::string & text); // throws parse_error
+    bool is_json_number(const std::string & num);
 
-    class JsonValue
+    class value
     {
         template<class T> static std::string to_str(const T & val) { std::ostringstream ss; ss << val; return ss.str(); }
 
         enum                Kind { Null, False, True, String, Number, Array, Object };
         Kind                kind; // What kind of value is this?
         std::string         str;  // Contents of String or Number value
-        JsonObject          obj;  // Fields of Object value
-        JsonArray           arr;  // Elements of Array value
+        object              obj;  // Fields of Object value
+        array               arr;  // Elements of Array value
 
-                            JsonValue(Kind kind, std::string str)       : kind(kind), str(move(str)) {}
+                            value(Kind kind, std::string str)           : kind(kind), str(move(str)) {}
     public:
-                            JsonValue()                                 : kind(Null) {}                 // Default construct null
-                            JsonValue(std::nullptr_t)                   : kind(Null) {}                 // Construct null from nullptr
-                            JsonValue(bool b)                           : kind(b ? True : False) {}     // Construct true or false from boolean
-                            JsonValue(const char * s)                   : JsonValue(String, s) {}           // Construct String from C-string
-                            JsonValue(std::string s)                    : JsonValue(String, move(s)) {}     // Construct String from std::string
-                            JsonValue(int32_t n)                        : JsonValue(Number, to_str(n)) {}   // Construct Number from integer
-                            JsonValue(uint32_t n)                       : JsonValue(Number, to_str(n)) {}   // Construct Number from integer
-                            JsonValue(int64_t n)                        : JsonValue(Number, to_str(n)) {}   // Construct Number from integer
-                            JsonValue(uint64_t n)                       : JsonValue(Number, to_str(n)) {}   // Construct Number from integer
-                            JsonValue(float n)                          : JsonValue(Number, to_str(n)) {}   // Construct Number from float
-                            JsonValue(double n)                         : JsonValue(Number, to_str(n)) {}   // Construct Number from double
-                            JsonValue(JsonObject o)                     : kind(Object), obj(move(o)) {} // Construct Object from vector<pair<string,JsonValue>> (TODO: Assert no duplicate keys)
-                            JsonValue(JsonArray a)                      : kind(Array), arr(move(a)) {}  // Construct Array from vector<JsonValue>
+                            value()                                     : kind(Null) {}                 // Default construct null
+                            value(std::nullptr_t)                       : kind(Null) {}                 // Construct null from nullptr
+                            value(bool b)                               : kind(b ? True : False) {}     // Construct true or false from boolean
+                            value(const char * s)                       : value(String, s) {}           // Construct String from C-string
+                            value(std::string s)                        : value(String, move(s)) {}     // Construct String from std::string
+                            value(int32_t n)                            : value(Number, to_str(n)) {}   // Construct Number from integer
+                            value(uint32_t n)                           : value(Number, to_str(n)) {}   // Construct Number from integer
+                            value(int64_t n)                            : value(Number, to_str(n)) {}   // Construct Number from integer
+                            value(uint64_t n)                           : value(Number, to_str(n)) {}   // Construct Number from integer
+                            value(float n)                              : value(Number, to_str(n)) {}   // Construct Number from float
+                            value(double n)                             : value(Number, to_str(n)) {}   // Construct Number from double
+                            value(object o)                             : kind(Object), obj(move(o)) {} // Construct Object from vector<pair<string,value>> (TODO: Assert no duplicate keys)
+                            value(array a)                              : kind(Array), arr(move(a)) {}  // Construct Array from vector<value>
 
-        bool                operator == (const JsonValue & r) const     { return kind == r.kind && str == r.str && obj == r.obj && arr == r.arr; }
-        bool                operator != (const JsonValue & r) const     { return !(*this == r); }
+        bool                operator == (const value & r) const         { return kind == r.kind && str == r.str && obj == r.obj && arr == r.arr; }
+        bool                operator != (const value & r) const         { return !(*this == r); }
 
-        const JsonValue &   operator[](size_t index) const              { const static JsonValue null; return index < arr.size() ? arr[index] : null; }
-        const JsonValue &   operator[](int index) const                 { const static JsonValue null; return index < 0 ? null : (*this)[static_cast<size_t>(index)]; }
-        const JsonValue &   operator[](const char * key) const          { for (auto & kvp : obj) if (kvp.first == key) return kvp.second; const static JsonValue null; return null; }
-        const JsonValue &   operator[](const std::string & key) const   { return (*this)[key.c_str()]; }
+        const value &       operator[](size_t index) const              { const static value null; return index < arr.size() ? arr[index] : null; }
+        const value &       operator[](int index) const                 { const static value null; return index < 0 ? null : (*this)[static_cast<size_t>(index)]; }
+        const value &       operator[](const char * key) const          { for (auto & kvp : obj) if (kvp.first == key) return kvp.second; const static value null; return null; }
+        const value &       operator[](const std::string & key) const   { return (*this)[key.c_str()]; }
 
-        bool                isString() const                            { return kind == String; }
-        bool                isNumber() const                            { return kind == Number; }
-        bool                isObject() const                            { return kind == Object; }
-        bool                isArray() const                             { return kind == Array; }
-        bool                isTrue() const                              { return kind == True; }
-        bool                isFalse() const                             { return kind == False; }
-        bool                isNull() const                              { return kind == Null; }
+        bool                is_string() const                           { return kind == String; }
+        bool                is_number() const                           { return kind == Number; }
+        bool                is_object() const                           { return kind == Object; }
+        bool                is_array() const                            { return kind == Array; }
+        bool                is_true() const                             { return kind == True; }
+        bool                is_false() const                            { return kind == False; }
+        bool                is_null() const                             { return kind == Null; }
 
-        bool                boolOrDefault(bool def) const               { return isTrue() ? true : isFalse() ? false : def; }
-        std::string         stringOrDefault(const char * def) const     { return kind == String ? str : def; }
-        template<class T> T numberOrDefault(T def) const                { if (!isNumber()) return def; T val = def; std::istringstream(str) >> val; return val; }
+        bool                bool_or_default(bool def) const             { return is_true() ? true : is_false() ? false : def; }
+        std::string         string_or_default(const char * def) const   { return kind == String ? str : def; }
+        template<class T> T number_or_default(T def) const              { if (!is_number()) return def; T val = def; std::istringstream(str) >> val; return val; }
 
-        std::string         string() const                              { return stringOrDefault(""); } // Value, if a String, empty otherwise
-        template<class T> T number() const                              { return numberOrDefault(T()); } // Value, if a Number, empty otherwise
-        const JsonObject &  object() const                              { return obj; }    // Name/value pairs, if an Object, empty otherwise
-        const JsonArray &   array() const                               { return arr; }    // Values, if an Array, empty otherwise
+        std::string         string() const                              { return string_or_default(""); } // Value, if a String, empty otherwise
+        template<class T> T number() const                              { return number_or_default(T()); } // Value, if a Number, empty otherwise
+        const object &      object() const                              { return obj; }    // Name/value pairs, if an Object, empty otherwise
+        const array &       array() const                               { return arr; }    // Values, if an Array, empty otherwise
 
         const std::string & contents() const                            { return str; }    // Contents, if a String, JSON format number, if a Number, empty otherwise
 
-        static JsonValue    fromNumber(std::string num)                 { assert(json::isJsonNumber(num)); return JsonValue(Number, move(num)); }
+        static value        from_number(std::string num)                { assert(is_json_number(num)); return value(Number, move(num)); }
     };
 
-    std::ostream & operator << (std::ostream & out, const JsonValue & val);
-    std::ostream & operator << (std::ostream & out, const JsonArray & arr);
-    std::ostream & operator << (std::ostream & out, const JsonObject & obj);
+    std::ostream & operator << (std::ostream & out, const value & val);
+    std::ostream & operator << (std::ostream & out, const array & arr);
+    std::ostream & operator << (std::ostream & out, const object & obj);
 
     template<class T> struct tabbed_ref { const T & value; int tabWidth, indent; };
     template<class T> tabbed_ref<T> tabbed(const T & value, int tabWidth, int indent = 0) { return{ value, tabWidth, indent }; }
-    std::ostream & operator << (std::ostream & out, tabbed_ref<JsonValue> val);
-    std::ostream & operator << (std::ostream & out, tabbed_ref<JsonArray> arr);
-    std::ostream & operator << (std::ostream & out, tabbed_ref<JsonObject> obj);
+    std::ostream & operator << (std::ostream & out, tabbed_ref<value> val);
+    std::ostream & operator << (std::ostream & out, tabbed_ref<array> arr);
+    std::ostream & operator << (std::ostream & out, tabbed_ref<object> obj);
 }
 #endif
 
@@ -130,7 +130,7 @@ namespace json
 
 namespace json 
 { 
-    std::ostream & printEscaped(std::ostream & out, const std::string & str)
+    std::ostream & print_escaped(std::ostream & out, const std::string & str)
     {
         // Escape sequences for ", \, and control characters, 0 indicates no escaping needed
         static const char * escapes[256] = {
@@ -151,7 +151,7 @@ namespace json
         return out << '"';
     }
 
-    std::ostream & operator << (std::ostream & out, const JsonArray & arr)
+    std::ostream & operator << (std::ostream & out, const array & arr)
     {
         int i = 0;
         out << '[';
@@ -159,25 +159,25 @@ namespace json
         return out << ']';
     }
 
-    std::ostream & operator << (std::ostream & out, const JsonObject & obj)
+    std::ostream & operator << (std::ostream & out, const object & obj)
     {
         int i = 0;
         out << '{';
         for (auto & kvp : obj)
         {
-            printEscaped(out << (i++ ? "," : ""), kvp.first) << ':' << kvp.second;
+            print_escaped(out << (i++ ? "," : ""), kvp.first) << ':' << kvp.second;
         }
         return out << '}';
     }
 
-    std::ostream & operator << (std::ostream & out, const JsonValue & val)
+    std::ostream & operator << (std::ostream & out, const value & val)
     {
-        if (val.isNull()) return out << "null";
-        else if (val.isFalse()) return out << "false";
-        else if (val.isTrue()) return out << "true";
-        else if (val.isString()) return printEscaped(out, val.contents());
-        else if (val.isNumber()) return out << val.contents();
-        else if (val.isArray()) return out << val.array();
+        if (val.is_null()) return out << "null";
+        else if (val.is_false()) return out << "false";
+        else if (val.is_true()) return out << "true";
+        else if (val.is_string()) return print_escaped(out, val.contents());
+        else if (val.is_number()) return out << val.contents();
+        else if (val.is_array()) return out << val.array();
         else return out << val.object();
     }
 
@@ -189,9 +189,9 @@ namespace json
         return out;
     }
 
-    std::ostream & operator << (std::ostream & out, tabbed_ref<JsonArray> arr)
+    std::ostream & operator << (std::ostream & out, tabbed_ref<array> arr)
     {
-        if (std::none_of(begin(arr.value), end(arr.value), [](const JsonValue & val) { return val.isArray() || val.isObject(); })) return out << arr.value;
+        if (std::none_of(begin(arr.value), end(arr.value), [](const value & val) { return val.is_array() || val.is_object(); })) return out << arr.value;
         else
         {
             int space = arr.indent + arr.tabWidth, i = 0;
@@ -201,7 +201,7 @@ namespace json
         }
     }
 
-    std::ostream & operator << (std::ostream & out, tabbed_ref<JsonObject> obj)
+    std::ostream & operator << (std::ostream & out, tabbed_ref<object> obj)
     {
         if (obj.value.empty()) return out << "{}";
         else
@@ -210,20 +210,20 @@ namespace json
             out << '{';
             for (auto & kvp : obj.value)
             {
-                printEscaped(indent(out, space, i++), kvp.first) << ": " << tabbed(kvp.second, obj.tabWidth, space);
+                print_escaped(indent(out, space, i++), kvp.first) << ": " << tabbed(kvp.second, obj.tabWidth, space);
             }
             return indent(out, obj.indent) << '}';
         }
     }
 
-    std::ostream & operator << (std::ostream & out, tabbed_ref<JsonValue> val)
+    std::ostream & operator << (std::ostream & out, tabbed_ref<value> val)
     {
-        if (val.value.isArray()) return out << tabbed(val.value.array(), val.tabWidth, val.indent);
-        else if (val.value.isObject()) return out << tabbed(val.value.object(), val.tabWidth, val.indent);
+        if (val.value.is_array()) return out << tabbed(val.value.array(), val.tabWidth, val.indent);
+        else if (val.value.is_object()) return out << tabbed(val.value.object(), val.tabWidth, val.indent);
         else return out << val.value;
     }
 
-    bool isJsonNumber(const std::string & num)
+    bool is_json_number(const std::string & num)
     {
     #ifdef __GNUC__
         auto it=begin(num); if(it == end(num)) return false;                   // String cannot be empty
@@ -261,12 +261,12 @@ namespace json
         if (ch >= '0' && ch <= '9') return ch - '0';
         if (ch >= 'A' && ch <= 'F') return 10 + ch - 'A';
         if (ch >= 'a' && ch <= 'f') return 10 + ch - 'a';
-        throw JsonParseError(std::string("invalid hex digit: ") + ch);
+        throw parse_error(std::string("invalid hex digit: ") + ch);
     }
 
     static std::string decode_string(std::string::const_iterator first, std::string::const_iterator last)
     {
-        if (std::any_of(first, last, iscntrl)) throw JsonParseError("control character found in string literal");
+        if (std::any_of(first, last, iscntrl)) throw parse_error("control character found in string literal");
         if (std::find(first, last, '\\') == last) return std::string(first, last); // No escape characters, use the string directly
         std::string s; s.reserve(last - first); // Reserve enough memory to hold the entire string
         for (; first < last; ++first)
@@ -283,7 +283,7 @@ namespace json
             case 'r': s.push_back('\r'); break;
             case 't': s.push_back('\t'); break;
             case 'u':
-                if (first + 5 > last) throw JsonParseError("incomplete escape sequence: " + std::string(first - 1, last));
+                if (first + 5 > last) throw parse_error("incomplete escape sequence: " + std::string(first - 1, last));
                 else
                 {
                     uint16_t val = (decode_hex(first[1]) << 12) | (decode_hex(first[2]) << 8) | (decode_hex(first[3]) << 4) | decode_hex(first[4]);
@@ -302,22 +302,22 @@ namespace json
                     first += 4;
                 }
                 break;
-            default: throw JsonParseError("invalid escape sequence");
+            default: throw parse_error("invalid escape sequence");
             }
         }
         return s;
     }
 
-    struct JsonToken { char type; std::string value; JsonToken(char type, std::string value = std::string()) : type(type), value(move(value)) {} };
+    struct token { char type; std::string value; token(char type, std::string value = std::string()) : type(type), value(move(value)) {} };
 
-    struct JsonParseState
+    struct parse_state
     {
-        std::vector<JsonToken>::iterator it, last;
+        std::vector<token>::iterator it, last;
 
-        bool matchAndDiscard(char type) { if (it->type != type) return false; ++it; return true; }
-        void discardExpected(char type, const char * what) { if (!matchAndDiscard(type)) throw JsonParseError(std::string("Syntax error: Expected ") + what); }
+        bool match_and_discard(char type) { if (it->type != type) return false; ++it; return true; }
+        void discard_expected(char type, const char * what) { if (!match_and_discard(type)) throw parse_error(std::string("Syntax error: Expected ") + what); }
 
-        JsonValue parseValue()
+        value parse_value()
         {
             auto token = it++;
             switch (token->type)
@@ -326,42 +326,42 @@ namespace json
             case 'f': return false;
             case 't': return true;
             case '"': return token->value;
-            case '#': return JsonValue::fromNumber(token->value);
+            case '#': return value::from_number(token->value);
             case '[':
-                if (matchAndDiscard(']')) return JsonArray{};
+                if (match_and_discard(']')) return array{};
                 else
                 {
-                    JsonArray arr;
+                    array arr;
                     while (true)
                     {
-                        arr.push_back(parseValue());
-                        if (matchAndDiscard(']')) return arr;
-                        discardExpected(',', ", or ]");
+                        arr.push_back(parse_value());
+                        if (match_and_discard(']')) return arr;
+                        discard_expected(',', ", or ]");
                     }
                 }
             case '{':
-                if (matchAndDiscard('}')) return JsonObject{};
+                if (match_and_discard('}')) return object{};
                 else
                 {
-                    JsonObject obj;
+                    object obj;
                     while (true)
                     {
                         auto name = move(it->value);
-                        discardExpected('"', "string");
-                        discardExpected(':', ":");
-                        obj.emplace_back(move(name), parseValue());
-                        if (matchAndDiscard('}')) { return obj; }
-                        discardExpected(',', ", or }");
+                        discard_expected('"', "string");
+                        discard_expected(':', ":");
+                        obj.emplace_back(move(name), parse_value());
+                        if (match_and_discard('}')) { return obj; }
+                        discard_expected(',', ", or }");
                     }
                 }
-            default: throw JsonParseError("Expected value");
+            default: throw parse_error("Expected value");
             }
         }
     };
 
-    std::vector<JsonToken> jsonTokensFrom(const std::string & text)
+    std::vector<token> parse_tokens(const std::string & text)
     {
-        std::vector<JsonToken> tokens;
+        std::vector<token> tokens;
         auto it = begin(text);
         while (true)
         {
@@ -390,7 +390,7 @@ namespace json
                         tokens.emplace_back('"', decode_string(it, it2));
                         it = it2 + 1;
                     }
-                    else throw JsonParseError("String missing closing quote");
+                    else throw parse_error("String missing closing quote");
                 }
                 break;
             case '-': case '0': case '1': case '2':
@@ -399,7 +399,7 @@ namespace json
                 {
                     auto it2 = std::find_if_not(it, end(text), [](char ch) { return isalnum(ch) || ch == '+' || ch == '-' || ch == '.'; });
                     auto num = std::string(it, it2);
-                    if (!isJsonNumber(num)) throw JsonParseError("Invalid number: " + num);
+                    if (!is_json_number(num)) throw parse_error("Invalid number: " + num);
                     tokens.emplace_back('#', move(num));
                     it = it2;
                 }
@@ -411,20 +411,20 @@ namespace json
                     if (std::equal(it, it2, "true")) tokens.emplace_back('t');
                     else if (std::equal(it, it2, "false")) tokens.emplace_back('f');
                     else if (std::equal(it, it2, "null")) tokens.emplace_back('n');
-                    else throw JsonParseError("Invalid token: " + std::string(it, it2));
+                    else throw parse_error("Invalid token: " + std::string(it, it2));
                     it = it2;
                 }
-                else throw JsonParseError("Invalid character: \'" + std::string(1, *it) + '"');
+                else throw parse_error("Invalid character: \'" + std::string(1, *it) + '"');
             }
         }
     }
 
-    JsonValue jsonFrom(const std::string & text)
+    value parse(const std::string & text)
     {
-        auto tokens = jsonTokensFrom(text);
-        JsonParseState p = { begin(tokens), end(tokens) };
-        auto val = p.parseValue();
-        p.discardExpected('$', "end-of-stream");
+        auto tokens = parse_tokens(text);
+        parse_state p = { begin(tokens), end(tokens) };
+        auto val = p.parse_value();
+        p.discard_expected('$', "end-of-stream");
         return val;
     }
 }
