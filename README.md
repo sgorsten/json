@@ -9,3 +9,12 @@ Visual Studio 2013 | [AppVeyor](http://ci.appveyor.com/): [![Build status](https
 GCC 4.8 | [Travis CI](http://travis-ci.org): [![Build status](http://travis-ci.org/sgorsten/json.svg?branch=master)](https://travis-ci.org/sgorsten/json) |
 
 [json.h](http://raw.githubusercontent.com/sgorsten/linalg/master/json.h) is a [single header](http://github.com/nothings/stb/blob/master/docs/other_libs.md) [public domain](http://unlicense.org/) [JSON](http://json.org) library for [C++11](http://en.cppreference.com/w/). 
+
+# TODO
+
+* Renaming pass (snake_case)
+* Add serialization helpers
+* Better support for mutable values
+* Decide whether to keep or deprecate gcc 4.8 and earlier workaround for missing <regex>
+* Validate + prettyprint sample
+* Unit tests
