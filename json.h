@@ -47,6 +47,7 @@
 #include <map>       // For std::map
 #include <stdexcept> // For std::runtime_error
 #include <sstream>   // For std::ostringstream
+
 namespace json 
 {
     enum class kind { string, number, object, array, true_, false_, null }; // Describes one of seven distinct categories of JSON values
@@ -70,7 +71,7 @@ namespace json
                                 value()                                     : k(kind::null) {}                     // Default construct null
                                 value(const char * s)                       : value(kind::string, s) {}            // Construct string from C-string
                                 value(std::string s)                        : value(kind::string, move(s)) {}      // Construct string from std::string
-        template<class N, class = std::enable_if_t<std::is_arithmetic<N>::value, void>>
+        template<class N, class = std::enable_if<std::is_arithmetic<N>::value, void>::type>
                                 value(N n)                                  : k(kind::number) { std::ostringstream ss; ss << +n; str = ss.str(); }
                                 value(object o)                             : k(kind::object), obj(move(o)) {}     // Construct object from vector<pair<string,value>> (TODO: Assert no duplicate keys)
                                 value(array a)                              : k(kind::array), arr(move(a)) {}      // Construct array from vector<value>
@@ -81,6 +82,11 @@ namespace json
         const value &           operator [] (int index) const               { const static value null; return index < 0 ? null : operator[](static_cast<size_t>(index)); }
         const value &           operator [] (const char * key) const        { for (auto & kvp : obj) if (kvp.first == key) return kvp.second; const static value null; return null; }
         const value &           operator [] (const std::string & key) const { return operator[](key.c_str()); }
+
+        kind                    get_kind() const                            { return k; }
+        const std::string &     get_contents() const                        { return str; }    // Contents, if a String, JSON format number, if a Number, empty otherwise
+        const object &          get_object() const                          { return obj; }    // Name/value pairs, if an Object, empty otherwise
+        const array &           get_array() const                           { return arr; }    // Values, if an Array, empty otherwise
 
         bool                    is_string() const                           { return k == kind::string; }
         bool                    is_number() const                           { return k == kind::number; }
@@ -97,15 +103,10 @@ namespace json
         std::string             string() const                              { return string_or_default(""); } // Value, if a String, empty otherwise
         template<class T> T     number() const                              { return number_or_default(T()); } // Value, if a Number, empty otherwise
 
-        json::kind              kind() const                                { return k; }
-        const std::string &     contents() const                            { return str; }    // Contents, if a String, JSON format number, if a Number, empty otherwise
-        const json::object &    object() const                              { return obj; }    // Name/value pairs, if an Object, empty otherwise
-        const json::array &     array() const                               { return arr; }    // Values, if an Array, empty otherwise
-
         static value            from_number(std::string num)                { assert(is_json_number(num)); return value(kind::number, move(num)); }
     };
 
-    bool operator == (const value & a, const value & b) { return a.kind() == b.kind() && a.contents() == b.contents() && a.object() == b.object() && a.array() == b.array(); }
+    bool operator == (const value & a, const value & b) { return a.get_kind() == b.get_kind() && a.get_contents() == b.get_contents() && a.get_object() == b.get_object() && a.get_array() == b.get_array(); }
     bool operator != (const value & a, const value & b) { return !(a == b); }
 
     std::ostream & operator << (std::ostream & out, const value & val);
@@ -118,6 +119,7 @@ namespace json
     std::ostream & operator << (std::ostream & out, tabbed_ref<array> arr);
     std::ostream & operator << (std::ostream & out, tabbed_ref<object> obj);
 }
+
 #endif
 
 // Define JSON_H_IMPLEMENTATION before including json.h in exactly one *.cpp file
@@ -172,10 +174,10 @@ namespace json
         if (val.is_null()) return out << "null";
         else if (val.is_false()) return out << "false";
         else if (val.is_true()) return out << "true";
-        else if (val.is_string()) return print_escaped(out, val.contents());
-        else if (val.is_number()) return out << val.contents();
-        else if (val.is_array()) return out << val.array();
-        else return out << val.object();
+        else if (val.is_string()) return print_escaped(out, val.get_contents());
+        else if (val.is_number()) return out << val.get_contents();
+        else if (val.is_array()) return out << val.get_array();
+        else return out << val.get_object();
     }
 
     static std::ostream & indent(std::ostream & out, int space, int n = 0)
@@ -215,8 +217,8 @@ namespace json
 
     std::ostream & operator << (std::ostream & out, tabbed_ref<value> val)
     {
-        if (val.value.is_array()) return out << tabbed(val.value.array(), val.tabWidth, val.indent);
-        else if (val.value.is_object()) return out << tabbed(val.value.object(), val.tabWidth, val.indent);
+        if (val.value.is_array()) return out << tabbed(val.value.get_array(), val.tabWidth, val.indent);
+        else if (val.value.is_object()) return out << tabbed(val.value.get_object(), val.tabWidth, val.indent);
         else return out << val.value;
     }
 
