@@ -45,7 +45,7 @@
 #include <cassert>
 #include <sstream>
 #include <vector>
-namespace cu 
+namespace json 
 {
     class JsonValue;
     typedef std::vector<JsonValue> JsonArray;
@@ -108,7 +108,7 @@ namespace cu
 
         const std::string & contents() const                            { return str; }    // Contents, if a String, JSON format number, if a Number, empty otherwise
 
-        static JsonValue    fromNumber(std::string num)                 { assert(cu::isJsonNumber(num)); return JsonValue(Number, move(num)); }
+        static JsonValue    fromNumber(std::string num)                 { assert(json::isJsonNumber(num)); return JsonValue(Number, move(num)); }
     };
 
     std::ostream & operator << (std::ostream & out, const JsonValue & val);
@@ -127,7 +127,7 @@ namespace cu
 #include <algorithm>
 #include <regex>
 
-namespace cu 
+namespace json 
 { 
     std::ostream & printEscaped(std::ostream & out, const std::string & str)
     {
