@@ -103,7 +103,7 @@ struct mesh { std::vector<vertex> vertices; std::vector<std::array<int,3>> trian
 template<class F> void visit_fields(vertex & o, F f) { f("v", o.position); f("n", o.normal); f("tc", o.texcoord); }
 template<class F> void visit_fields(mesh & o, F f) { f("vertices", o.vertices); f("triangles", o.triangles); }
 
-TEST_CASE( "test json::encode and json::decode" )
+TEST_CASE( "test to_json and from_json" )
 {
     const mesh quad_mesh = {
         {
@@ -158,6 +158,33 @@ TEST_CASE( "test json::encode and json::decode" )
     REQUIRE( memcmp(quad_mesh.vertices.data(), decoded_mesh.vertices.data(), sizeof(vertex)*quad_mesh.vertices.size()) == 0 );
     REQUIRE( quad_mesh.triangles.size() == decoded_mesh.triangles.size() );
     REQUIRE( memcmp(quad_mesh.triangles.data(), decoded_mesh.triangles.data(), sizeof(int)*3*quad_mesh.triangles.size()) == 0 );
+}
+
+TEST_CASE( "test to_json and from_json with maps" )
+{
+    std::map<std::string, double> m {
+        {"alpha", 1.1},
+        {"beta", 2.3},
+        {"gamma", 3.5}
+    };
+
+    const char * desired_output = R"({
+    "alpha": 1.1,
+    "beta": 2.3,
+    "gamma": 3.5
+})";
+
+    // If we encode the data structure and print it, we should get the desired output
+    REQUIRE( pretty_print(to_json(m)) == desired_output );
+
+    // If we encode the data structure and parse the desired output, we should get equivalent JSON values
+    REQUIRE( to_json(m) == json::parse(desired_output) );
+
+    // If we parse the desired output and decode it to a mesh, it should match the original
+    std::map<std::string, double> decoded_map;
+    from_json(decoded_map, json::parse(desired_output));
+    REQUIRE( m.size() == decoded_map.size() );
+    REQUIRE( m == decoded_map );
 }
 
 // TODO: Test printing of escape sequences

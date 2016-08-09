@@ -127,6 +127,7 @@ template<class T> typename std::enable_if<std::is_arithmetic<T>::value, json::va
 template<class T, int N> json::value to_json(const T (& a)[N]) { json::array r(N); for(int i=0; i<N; ++i) r[i] = to_json(a[i]); return r; }
 template<class T, size_t N> json::value to_json(const std::array<T,N> & a) { json::array r(N); for(size_t i=0; i<N; ++i) r[i] = to_json(a[i]); return r; }
 template<class T> json::value to_json(const std::vector<T> & v) { json::array r(v.size()); for(size_t i=0; i<v.size(); ++i) r[i] = to_json(v[i]); return r; }
+template<class T> json::value to_json(const std::map<std::string, T> & m) { json::object r; for(auto & p : m) r[p.first] = to_json(p.second); return r; }
 struct field_encoder { json::object & o; template<class T> void operator () (const char * name, const T & field) { o.emplace(name, to_json(field)); } };
 template<class T> typename std::enable_if<std::is_class<T>::value, json::value>::type to_json(const T & o) { json::object r; visit_fields(const_cast<T &>(o), field_encoder{r}); return r; }
     
@@ -136,6 +137,7 @@ template<class T> typename std::enable_if<std::is_arithmetic<T>::value>::type fr
 template<class T, int N> void from_json(T (& a)[N], const json::value & val) { for(int i=0; i<N; ++i) from_json(a[i], val[i]); }
 template<class T, size_t N> void from_json(std::array<T,N> & a, const json::value & val) { for(size_t i=0; i<N; ++i) from_json(a[i], val[i]); }
 template<class T> void from_json(std::vector<T> & v, const json::value & val) { v.resize(val.get_array().size()); for(size_t i=0; i<v.size(); ++i) from_json(v[i], val[i]); }
+template<class T> void from_json(std::map<std::string, T> & m, const json::value & val) { for(auto & p : val.get_object()) { from_json(m[p.first], p.second); } }
 struct field_decoder { const json::value & v; template<class T> void operator () (const char * name, T & field) { from_json(field, v[name]); } };
 template<class T> typename std::enable_if<std::is_class<T>::value>::type from_json(T & o, const json::value & val) { visit_fields(o, field_decoder{val}); }   
 
